@@ -1,0 +1,907 @@
+# wed-shee-nh
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud Photo Gallery - Album Đám Mây</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Glassmorphism Effect */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Masonry/Grid Card Animation */
+    .photo-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .photo-card:hover {
+      transform: translateY(-6px) scale(1.01);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm pointer-events-none"></div>
+
+  <!-- LOCK SCREEN / KEY AUTHENTICATION -->
+  <div id="auth-screen" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-955">
+    <div class="glass-panel p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden border border-slate-800">
+      <!-- Glow Decor -->
+      <div class="absolute -top-12 -right-12 w-40 h-40 bg-sky-500/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="text-center mb-8 relative z-10">
+        <div class="w-16 h-16 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-sky-500/30">
+          <i class="fa-solid fa-vault text-2xl text-white"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Cloud Gallery Secret Pass</h1>
+        <p class="text-sm text-slate-400 mt-2">Nhập mã Key truy cập để xem và quản lý bộ sưu tập ảnh cá nhân</p>
+      </div>
+
+      <form id="key-auth-form" class="space-y-5 relative z-10">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Mã Key Access</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+              <i class="fa-solid fa-key"></i>
+            </span>
+            <input 
+              type="password" 
+              id="input-access-key" 
+              placeholder="VD: DEMO123 hoặc VIP-2026-KEY" 
+              class="w-full pl-10 pr-10 py-3 bg-slate-900/90 border border-slate-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-white placeholder-slate-500 text-sm transition"
+              required
+            >
+            <button type="button" id="toggle-key-visibility" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mt-2 flex justify-between items-center">
+            <span>Key dùng chung mở album lưu trữ</span>
+            <span class="text-sky-4-400 italic">Mặc định: DEMO123</span>
+          </p>
+        </div>
+
+        <button 
+          type="submit" 
+          id="btn-login-key" 
+          class="w-full py-3.5 px-4 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-sky-500/25 transition duration-200 flex items-center justify-center gap-2"
+        >
+          <span>Mở Khóa Album</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER (Hidden initially) -->
+  <div id="main-app" class="hidden flex-col min-h-screen">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-sky-500/20">
+          <i class="fa-solid fa-images text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-wide text-white">Cloud Photo Gallery</h1>
+          <p id="active-key-badge" class="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Key: <span id="current-key-display" class="text-sky-400 font-semibold">---</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button 
+          id="btn-open-upload-modal" 
+          class="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-medium text-sm px-4 py-2 rounded-xl flex items-center gap-2 shadow-md shadow-sky-500/20 transition cursor-pointer"
+        >
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span class="hidden sm:inline">Thêm Ảnh Mới</span>
+        </button>
+        <button 
+          id="btn-logout" 
+          title="Đăng xuất Key"
+          class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white p-2.5 rounded-xl border border-slate-700 transition"
+        >
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      
+      <!-- TOOLBAR: SEARCH & FILTER -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8">
+        <div class="relative w-full sm:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Tìm kiếm tiêu đề hoặc mô tả..." 
+            class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-200 placeholder-slate-500"
+          >
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <span id="photo-count" class="text-xs font-medium text-slate-400 bg-slate-900 px-3 py-2 rounded-lg border border-slate-800">
+            0 hình ảnh
+          </span>
+          <select id="sort-select" class="bg-slate-900 border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="newest">Mới nhất trước</option>
+            <option value="oldest">Cũ nhất trước</option>
+            <option value="title">Tên (A - Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- GALLERY GRID -->
+      <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <!-- Rendered photo cards will go here -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="empty-state" class="hidden flex-col items-center justify-center py-20 text-center">
+        <div class="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-600 mb-4 text-3xl">
+          <i class="fa-regular fa-image"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-300">Chưa có bức ảnh nào</h3>
+        <p class="text-slate-500 text-sm max-w-sm mt-1">Album thuộc Key này đang trống. Hãy bấm "Thêm Ảnh Mới" để đăng bức hình đầu tiên lên đám mây!</p>
+        <button 
+          id="btn-empty-upload"
+          class="mt-5 bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition flex items-center gap-2"
+        >
+          <i class="fa-solid fa-plus"></i> Đăng ảnh ngay
+        </button>
+      </div>
+
+      <!-- LOADING STATE -->
+      <div id="loading-state" class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-400 text-sm">Đang đồng bộ dữ liệu ảnh từ đám mây...</p>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-600">
+      <p>© 2026 Cloud Photo Gallery — Lưu trữ ảnh bảo mật với Key Access</p>
+    </footer>
+  </div>
+
+  <!-- UPLOAD MODAL -->
+  <div id="upload-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl relative overflow-hidden border border-slate-800 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-cloud-arrow-up text-sky-400 text-xl"></i>
+          <h3 class="text-lg font-bold text-white">Thêm Ảnh Mới Vào Album</h3>
+        </div>
+        <button id="btn-close-upload" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- TAB SWITCH (URL vs Local File) -->
+      <div class="flex border-b border-slate-800 mb-5">
+        <button id="tab-btn-url" class="flex-1 py-2 text-center text-sm font-medium text-sky-400 border-b-2 border-sky-400 transition">
+          <i class="fa-solid fa-link mr-2"></i>Đường dẫn URL
+        </button>
+        <button id="tab-btn-file" class="flex-1 py-2 text-center text-sm font-medium text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition">
+          <i class="fa-solid fa-file-arrow-up mr-2"></i>Tải từ máy (Base64)
+        </button>
+      </div>
+
+      <form id="upload-form" class="space-y-4">
+        <!-- URL Input Field -->
+        <div id="input-group-url">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">URL Hình Ảnh (*)</label>
+          <input 
+            type="url" 
+            id="photo-url" 
+            placeholder="https://images.unsplash.com/photo-..." 
+            class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-100 placeholder-slate-600"
+          >
+          <span class="text-xs text-slate-500 mt-1 block">Nhập URL trực tiếp của file ảnh (.png, .jpg, .webp, v.v.)</span>
+        </div>
+
+        <!-- File Upload Input Field (Hidden initially) -->
+        <div id="input-group-file" class="hidden">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Chọn file ảnh (*)</label>
+          <label class="border-2 border-dashed border-slate-800 hover:border-sky-500/50 bg-slate-900/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+            <span class="text-sm font-medium text-slate-300" id="file-name-display">Bấm để chọn file ảnh từ thiết bị</span>
+            <span class="text-xs text-slate-500 mt-1">Hỗ trợ JPG, PNG, WEBP (Khuyên dùng < 2MB)</span>
+            <input type="file" id="photo-file" accept="image/*" class="hidden">
+          </label>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Tiêu đề ảnh (*)</label>
+          <input 
+            type="text" 
+            id="photo-title" 
+            placeholder="Kỷ niệm chuyến đi biển, Hoàng hôn..." 
+            class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-100 placeholder-slate-600"
+            required
+          >
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Mô tả chi tiết</label>
+          <textarea 
+            id="photo-desc" 
+            rows="3" 
+            placeholder="Ghi chú thêm thông tin hoặc khoảnh khắc về bức ảnh này..." 
+            class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-100 placeholder-slate-600"
+          ></textarea>
+        </div>
+
+        <!-- Preview Container -->
+        <div id="image-preview-container" class="hidden">
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Xem trước</label>
+          <div class="w-full h-40 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 relative">
+            <img id="image-preview" src="" alt="Preview" class="w-full h-full object-cover">
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-3 flex gap-3">
+          <button 
+            type="button" 
+            id="btn-cancel-upload"
+            class="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-sm transition"
+          >
+            Hủy
+          </button>
+          <button 
+            type="submit" 
+            id="btn-submit-photo"
+            class="w-2/3 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold rounded-xl text-sm shadow-md shadow-sky-500/20 transition flex items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Đăng Lên Đám Mây</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX MODAL (FULLSCREEN IMAGE VIEW) -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between hidden">
+    <!-- Lightbox Header -->
+    <div class="p-4 flex justify-between items-center border-b border-slate-800/60 z-10">
+      <div>
+        <h4 id="lightbox-title" class="font-semibold text-white text-base">---</h4>
+        <p id="lightbox-date" class="text-xs text-slate-400">---</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-delete-photo" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 p-2 rounded-xl transition text-sm flex items-center gap-1.5 px-3">
+          <i class="fa-regular fa-trash-can"></i>
+          <span class="hidden sm:inline">Xóa ảnh</span>
+        </button>
+        <button id="btn-close-lightbox" class="text-slate-400 hover:text-white p-2.5 rounded-xl hover:bg-slate-800 transition">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lightbox Main Image Display -->
+    <div class="relative flex-grow flex items-center justify-center p-4">
+      <button id="btn-prev-photo" class="absolute left-4 z-10 text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800 p-3.5 rounded-full border border-slate-700/50 transition">
+        <i class="fa-solid fa-chevron-left text-lg"></i>
+      </button>
+
+      <img id="lightbox-img" src="" alt="Full View" class="max-h-[75vh] max-w-[90vw] object-contain rounded-lg shadow-2xl transition-all duration-300">
+
+      <button id="btn-next-photo" class="absolute right-4 z-10 text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800 p-3.5 rounded-full border border-slate-700/50 transition">
+        <i class="fa-solid fa-chevron-right text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Lightbox Footer / Description -->
+    <div class="p-4 bg-slate-900/80 border-t border-slate-800/60 text-center">
+      <p id="lightbox-desc" class="text-sm text-slate-300 max-w-2xl mx-auto">---</p>
+    </div>
+  </div>
+
+  <!-- FIREBASE MODULE & APPLICATION LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      signInWithCustomToken, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      addDoc, 
+      deleteDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- GLOBAL CONFIG & APP STATE ---
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'cloud-gallery-default';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+      ? JSON.parse(__firebase_config) 
+      : {
+          apiKey: "AIzaSyDemoKeyOnlyForLayoutPreview",
+          authDomain: "demo-app.firebaseapp.com",
+          projectId: "demo-app",
+          storageBucket: "demo-app.appspot.com",
+          messagingSenderId: "123456789",
+          appId: "1:123456789:web:abcdef"
+        };
+
+    // Firebase Initialization
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Local State Variables
+    let activeKey = "";
+    let photosList = [];
+    let activePhotoIndex = -1;
+    let unsubscribeFirestore = null;
+    let uploadTab = "url"; // 'url' or 'file'
+    let selectedBase64 = "";
+
+    // DOM Elements
+    const authScreen = document.getElementById('auth-screen');
+    const mainApp = document.getElementById('main-app');
+    const keyAuthForm = document.getElementById('key-auth-form');
+    const inputAccessKey = document.getElementById('input-access-key');
+    const toggleKeyVisibilityBtn = document.getElementById('toggle-key-visibility');
+    const currentKeyDisplay = document.getElementById('current-key-display');
+    const btnLogout = document.getElementById('btn-logout');
+
+    const galleryGrid = document.getElementById('gallery-grid');
+    const emptyState = document.getElementById('empty-state');
+    const loadingState = document.getElementById('loading-state');
+    const photoCountBadge = document.getElementById('photo-count');
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-select');
+
+    const uploadModal = document.getElementById('upload-modal');
+    const btnOpenUpload = document.getElementById('btn-open-upload-modal');
+    const btnEmptyUpload = document.getElementById('btn-empty-upload');
+    const btnCloseUpload = document.getElementById('btn-close-upload');
+    const btnCancelUpload = document.getElementById('btn-cancel-upload');
+    const uploadForm = document.getElementById('upload-form');
+
+    const tabBtnUrl = document.getElementById('tab-btn-url');
+    const tabBtnFile = document.getElementById('tab-btn-file');
+    const inputGroupUrl = document.getElementById('input-group-url');
+    const inputGroupFile = document.getElementById('input-group-file');
+    const photoUrlInput = document.getElementById('photo-url');
+    const photoFileInput = document.getElementById('photo-file');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+
+    const lightboxModal = document.getElementById('lightbox-modal');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxDate = document.getElementById('lightbox-date');
+    const lightboxDesc = document.getElementById('lightbox-desc');
+    const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+    const btnPrevPhoto = document.getElementById('btn-prev-photo');
+    const btnNextPhoto = document.getElementById('btn-next-photo');
+    const btnDeletePhoto = document.getElementById('btn-delete-photo');
+
+    // --- AUTHENTICATION & INITIALIZATION ---
+    
+    // Auth Listener
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        } catch (err) {
+          console.warn("Auth Fallback:", err);
+        }
+      }
+    });
+
+    // Check saved key on launch
+    const savedKey = localStorage.getItem('gallery_access_key');
+    if (savedKey) {
+      inputAccessKey.value = savedKey;
+      authenticateKey(savedKey);
+    }
+
+    // Toggle Password Visibility
+    toggleKeyVisibilityBtn.addEventListener('click', () => {
+      const type = inputAccessKey.getAttribute('type') === 'password' ? 'text' : 'password';
+      inputAccessKey.setAttribute('type', type);
+      toggleKeyVisibilityBtn.innerHTML = type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+    });
+
+    // Handle Access Key Submission
+    keyAuthForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const keyVal = inputAccessKey.value.trim().toUpperCase();
+      if (!keyVal) {
+        showToast("Vui lòng nhập Key kích hoạt!", "error");
+        return;
+      }
+      authenticateKey(keyVal);
+    });
+
+    function authenticateKey(key) {
+      activeKey = key;
+      localStorage.setItem('gallery_access_key', key);
+      
+      // Update UI
+      currentKeyDisplay.textContent = key;
+      authScreen.classList.add('hidden');
+      mainApp.classList.remove('hidden');
+      mainApp.classList.add('flex');
+
+      showToast(`Mở khóa thành công với Key: ${key}`, "success");
+      
+      // Attach Firestore Listener for photos under this key
+      subscribeToPhotos();
+    }
+
+    // Logout
+    btnLogout.addEventListener('click', () => {
+      localStorage.removeItem('gallery_access_key');
+      activeKey = "";
+      if (unsubscribeFirestore) unsubscribeFirestore();
+      
+      mainApp.classList.remove('flex');
+      mainApp.classList.add('hidden');
+      authScreen.classList.remove('hidden');
+      inputAccessKey.value = "";
+      showToast("Đã khóa album", "info");
+    });
+
+    // --- FIRESTORE REAL-TIME DATA SYNC ---
+    function subscribeToPhotos() {
+      if (!activeKey) return;
+
+      loadingState.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      galleryGrid.innerHTML = "";
+
+      // Rule 1 strictly followed: public data path
+      // collection: /artifacts/{appId}/public/data/{collectionName}
+      // Sanitizing collection key for Firestore path
+      const sanitizedKeyCollection = `photos_${activeKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const photosColRef = collection(db, 'artifacts', appId, 'public', 'data', sanitizedKeyCollection);
+
+      // Unsubscribe previous if exists
+      if (unsubscribeFirestore) unsubscribeFirestore();
+
+      unsubscribeFirestore = onSnapshot(
+        photosColRef,
+        (snapshot) => {
+          loadingState.classList.add('hidden');
+          const docsData = [];
+          snapshot.forEach((doc) => {
+            docsData.push({ id: doc.id, ...doc.data() });
+          });
+
+          photosList = docsData;
+          renderGallery();
+        },
+        (error) => {
+          console.error("Firestore Listen Error:", error);
+          loadingState.classList.add('hidden');
+          showToast("Lỗi tải dữ liệu từ đám mây!", "error");
+        }
+      );
+    }
+
+    // --- GALLERY RENDER & FILTERING ---
+    function renderGallery() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const sortType = sortSelect.value;
+
+      // Filter
+      let filtered = photosList.filter(item => {
+        const titleMatch = item.title && item.title.toLowerCase().includes(searchTerm);
+        const descMatch = item.desc && item.desc.toLowerCase().includes(searchTerm);
+        return titleMatch || descMatch;
+      });
+
+      // Sort in memory (Rule 2: No complex queries in Firestore)
+      filtered.sort((a, b) => {
+        if (sortType === 'newest') return (b.createdAt || 0) - (a.createdAt || 0);
+        if (sortType === 'oldest') return (a.createdAt || 0) - (b.createdAt || 0);
+        if (sortType === 'title') return (a.title || '').localeCompare(b.title || '');
+        return 0;
+      });
+
+      // Update badge
+      photoCountBadge.textContent = `${filtered.length} hình ảnh`;
+
+      if (filtered.length === 0) {
+        galleryGrid.innerHTML = "";
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      // Render cards
+      galleryGrid.innerHTML = filtered.map((photo, index) => {
+        const dateStr = photo.createdAt ? new Date(photo.createdAt).toLocaleDateString('vi-VN', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : 'Vừa xong';
+
+        return `
+          <div 
+            class="photo-card glass-card rounded-2xl overflow-hidden cursor-pointer group flex flex-col"
+            onclick="window.openLightbox('${photo.id}')"
+          >
+            <div class="relative w-full pt-[75%] bg-slate-900 overflow-hidden">
+              <img 
+                src="${photo.url}" 
+                alt="${escapeHtml(photo.title)}" 
+                class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                onerror="this.onerror=null; this.src='https://placehold.co/600x400/1e293b/94a3b8?text=Image+Load+Error';"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3.5">
+                <span class="text-xs text-slate-300 flex items-center gap-1">
+                  <i class="fa-regular fa-eye"></i> Phóng to
+                </span>
+              </div>
+            </div>
+            
+            <div class="p-4 flex-grow flex flex-col justify-between">
+              <div>
+                <h3 class="font-semibold text-slate-100 text-base line-clamp-1 group-hover:text-sky-400 transition-colors">
+                  ${escapeHtml(photo.title)}
+                </h3>
+                ${photo.desc ? `<p class="text-xs text-slate-400 mt-1 line-clamp-2 font-normal">${escapeHtml(photo.desc)}</p>` : ''}
+              </div>
+              <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-[11px] text-slate-500">
+                <span><i class="fa-regular fa-clock mr-1"></i>${dateStr}</span>
+                <span class="text-slate-400 hover:text-rose-400" onclick="event.stopPropagation(); window.deletePhotoDirect('${photo.id}')">
+                  <i class="fa-regular fa-trash-can"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Search and Sort Event Listeners
+    searchInput.addEventListener('input', renderGallery);
+    sortSelect.addEventListener('change', renderGallery);
+
+    // --- UPLOAD MODAL LOGIC ---
+    btnOpenUpload.addEventListener('click', openUploadModal);
+    btnEmptyUpload.addEventListener('click', openUploadModal);
+    btnCloseUpload.addEventListener('click', closeUploadModal);
+    btnCancelUpload.addEventListener('click', closeUploadModal);
+
+    function openUploadModal() {
+      uploadModal.classList.remove('hidden');
+    }
+
+    function closeUploadModal() {
+      uploadModal.classList.add('hidden');
+      uploadForm.reset();
+      selectedBase64 = "";
+      imagePreviewContainer.classList.add('hidden');
+      fileNameDisplay.textContent = "Bấm để chọn file ảnh từ thiết bị";
+    }
+
+    // Tab Switch (URL vs File)
+    tabBtnUrl.addEventListener('click', () => {
+      uploadTab = "url";
+      tabBtnUrl.className = "flex-1 py-2 text-center text-sm font-medium text-sky-400 border-b-2 border-sky-400 transition";
+      tabBtnFile.className = "flex-1 py-2 text-center text-sm font-medium text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition";
+      inputGroupUrl.classList.remove('hidden');
+      inputGroupFile.classList.add('hidden');
+      updatePreview();
+    });
+
+    tabBtnFile.addEventListener('click', () => {
+      uploadTab = "file";
+      tabBtnFile.className = "flex-1 py-2 text-center text-sm font-medium text-sky-400 border-b-2 border-sky-400 transition";
+      tabBtnUrl.className = "flex-1 py-2 text-center text-sm font-medium text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition";
+      inputGroupFile.classList.remove('hidden');
+      inputGroupUrl.classList.add('hidden');
+      updatePreview();
+    });
+
+    // Preview URL Input
+    photoUrlInput.addEventListener('input', updatePreview);
+
+    // File Input change
+    photoFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size > 4 * 1024 * 1024) {
+          showToast("File ảnh quá lớn (>4MB). Nên dùng file nhỏ hơn để tối ưu đám mây!", "warning");
+        }
+        fileNameDisplay.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          selectedBase64 = evt.target.result;
+          updatePreview();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function updatePreview() {
+      let finalSrc = "";
+      if (uploadTab === "url") {
+        finalSrc = photoUrlInput.value.trim();
+      } else {
+        finalSrc = selectedBase64;
+      }
+
+      if (finalSrc) {
+        imagePreview.src = finalSrc;
+        imagePreviewContainer.classList.remove('hidden');
+      } else {
+        imagePreviewContainer.classList.add('hidden');
+      }
+    }
+
+    // Submit New Photo to Firestore
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const title = document.getElementById('photo-title').value.trim();
+      const desc = document.getElementById('photo-desc').value.trim();
+      let photoUrl = "";
+
+      if (uploadTab === "url") {
+        photoUrl = photoUrlInput.value.trim();
+      } else {
+        photoUrl = selectedBase64;
+      }
+
+      if (!photoUrl) {
+        showToast("Vui lòng nhập URL ảnh hoặc chọn 1 file ảnh!", "error");
+        return;
+      }
+
+      if (!title) {
+        showToast("Vui lòng nhập tiêu đề ảnh!", "error");
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-photo');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Đang lưu...</span>`;
+
+      try {
+        const sanitizedKeyCollection = `photos_${activeKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const photosColRef = collection(db, 'artifacts', appId, 'public', 'data', sanitizedKeyCollection);
+
+        await addDoc(photosColRef, {
+          title: title,
+          desc: desc,
+          url: photoUrl,
+          createdAt: Date.now(),
+          key: activeKey
+        });
+
+        showToast("Đã lưu ảnh thành công lên Đám Mây!", "success");
+        closeUploadModal();
+      } catch (err) {
+        console.error("Error saving photo:", err);
+        showToast("Không thể đăng ảnh. Vui lòng thử lại!", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Đăng Lên Đám Mây</span>`;
+      }
+    });
+
+    // --- LIGHTBOX MODAL (VIEW / DELETE) ---
+    window.openLightbox = function(photoId) {
+      const idx = photosList.findIndex(p => p.id === photoId);
+      if (idx === -1) return;
+
+      activePhotoIndex = idx;
+      displayLightboxPhoto(activePhotoIndex);
+      lightboxModal.classList.remove('hidden');
+      lightboxModal.classList.add('flex');
+    };
+
+    function displayLightboxPhoto(index) {
+      if (index < 0 || index >= photosList.length) return;
+      
+      const photo = photosList[index];
+      lightboxImg.src = photo.url;
+      lightboxTitle.textContent = photo.title || "Không có tiêu đề";
+      lightboxDesc.textContent = photo.desc || "Không có mô tả thêm.";
+      
+      const dateStr = photo.createdAt ? new Date(photo.createdAt).toLocaleDateString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) : 'Mới đây';
+
+      lightboxDate.textContent = `Đăng ngày ${dateStr}`;
+    }
+
+    btnCloseLightbox.addEventListener('click', closeLightbox);
+    function closeLightbox() {
+      lightboxModal.classList.add('hidden');
+      lightboxModal.classList.remove('flex');
+    }
+
+    btnPrevPhoto.addEventListener('click', () => {
+      if (photosList.length === 0) return;
+      activePhotoIndex = (activePhotoIndex - 1 + photosList.length) % photosList.length;
+      displayLightboxPhoto(activePhotoIndex);
+    });
+
+    btnNextPhoto.addEventListener('click', () => {
+      if (photosList.length === 0) return;
+      activePhotoIndex = (activePhotoIndex + 1) % photosList.length;
+      displayLightboxPhoto(activePhotoIndex);
+    });
+
+    // Keyboard navigation for lightbox
+    document.addEventListener('keydown', (e) => {
+      if (lightboxModal.classList.contains('hidden')) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") btnPrevPhoto.click();
+      if (e.key === "ArrowRight") btnNextPhoto.click();
+    });
+
+    // Delete photo from Lightbox
+    btnDeletePhoto.addEventListener('click', () => {
+      if (activePhotoIndex === -1) return;
+      const photo = photosList[activePhotoIndex];
+      if (photo) {
+        deletePhotoById(photo.id);
+        closeLightbox();
+      }
+    });
+
+    // Direct Delete photo
+    window.deletePhotoDirect = function(photoId) {
+      deletePhotoById(photoId);
+    };
+
+    async function deletePhotoById(photoId) {
+      // Custom confirmation UI via Toast/Modal approach or quick prompt
+      if (!confirm("Bạn có chắc chắn muốn xóa bức ảnh này khỏi đám mây?")) {
+        return;
+      }
+
+      try {
+        const sanitizedKeyCollection = `photos_${activeKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const photoDocRef = doc(db, 'artifacts', appId, 'public', 'data', sanitizedKeyCollection, photoId);
+        
+        await deleteDoc(photoDocRef);
+        showToast("Đã xóa ảnh thành công!", "success");
+      } catch (err) {
+        console.error("Delete Error:", err);
+        showToast("Lỗi khi xóa ảnh!", "error");
+      }
+    }
+
+    // --- HELPER FUNCTIONS ---
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+
+    // Custom Toast Notification System
+    function showToast(message, type = "info") {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const typeStyles = {
+        success: "bg-emerald-950 border-emerald-500 text-emerald-200",
+        error: "bg-rose-950 border-rose-500 text-rose-200",
+        warning: "bg-amber-950 border-amber-500 text-amber-200",
+        info: "bg-sky-950 border-sky-500 text-sky-200"
+      };
+
+      const icons = {
+        success: '<i class="fa-solid fa-circle-check text-emerald-400"></i>',
+        error: '<i class="fa-solid fa-circle-xmark text-rose-400"></i>',
+        warning: '<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>',
+        info: '<i class="fa-solid fa-circle-info text-sky-400"></i>'
+      };
+
+      toast.className = `glass-panel border p-3.5 rounded-xl shadow-xl flex items-center gap-3 text-xs font-medium transform transition-all duration-300 pointer-events-auto translate-y-2 opacity-0 ${typeStyles[type] || typeStyles.info}`;
+      toast.innerHTML = `
+        ${icons[type] || icons.info}
+        <span class="flex-grow">${message}</span>
+        <button class="text-slate-400 hover:text-white" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+      `;
+
+      container.appendChild(toast);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      // Auto remove after 4s
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
